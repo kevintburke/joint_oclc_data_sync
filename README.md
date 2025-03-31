@@ -38,7 +38,7 @@ _Data Sync Report Processing_
 
 --- Records with “match” action selected for batch processing; other records require manual review
 
--   Sets aside records with already updated OCLC #s in 035 $a
+  - Sets aside records with already updated OCLC #s in 035 $a
 
 _Batch Updating Records in NZ_
 - Using outputs of NZ Script 2, create an itemized set in the NZ Alma Instance of titles requiring OCLC # updates
