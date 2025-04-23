@@ -1,4 +1,5 @@
 import pandas as pd
+from tkinter import messagebox, filedialog
 
 CEFID = "5153"
 UWOID = "5163"
@@ -6,9 +7,12 @@ NZID = "5151"
 
 #Merge two Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
 def merge_reports():
-    #Read both .txt files and convert to dataframes
-    f1 = open('mergetest1.txt')
-    f2 = open('mergetest2.txt')
+    #Prompt user for .txt files and open both
+    messagebox.showinfo(title=None, message='Please select the Bib Processing Reports to load and compare.')
+    fn1 = filedialog.askopenfilename()
+    f1 = open(fn1, 'r')
+    fn2 = filedialog.askopenfilename()
+    f2 = open(fn2, 'r')
 
     #Create dataframes with labelled columns (copied from UWO code)
     df1 = pd.read_csv(f1, sep="|", header=None, dtype=str)
