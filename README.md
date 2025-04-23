@@ -3,7 +3,7 @@ Joint processing of OCLC data sync for Collaborative Futures institutions.
 
 These scripts are currently used to batch update the OCLC numbers for NZ records published to OCLC through the weekly publishing jobs at Western and Carleton. They require the following inputs:
 
-- 2 bib processing reports (one from Western, one from Carleton), named mergetest1.txt and mergetest2.txt
+- 2 bib processing reports (one from Western, one from Carleton), <s>named mergetest1.txt and mergetest2.txt</s> <i>specific filenames no longer required; script will prompt user to select files to load via filedialog - KB 04/23/2025</i>
 - 1 do-not-change file listing records to skip in the batch update process
 - 1 OCLC-doublecheck Analytics report (NOTE: requires the output of NZ script 1 to generate)
 
