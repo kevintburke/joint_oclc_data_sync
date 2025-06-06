@@ -1,3 +1,4 @@
+from math import ceil
 import pandas as pd
 import requests
 import io
@@ -5,19 +6,35 @@ import api
 from urllib.parse import quote
 
 
-NUMBER_OF_REQUESTS = 11
+NETWORK_IDS_PER_REQUEST = 11
 API_KEY = api.get_api_key()
 
 def get_OCLC_doublecheck():
-    # This function is not used in the current script, but can be defined if needed.
-    
+    """
+    Fetches OCLC doublecheck data from Alma Analytics and returns it as a DataFrame.
+    """
+    if not API_KEY:
+        print("API key is not set. Please set the NZ_API_KEY environment variable.")
+        exit()
+    if NETWORK_IDS_PER_REQUEST <= 0:
+        print("NETWORK_IDS_PER_REQUEST must be greater than 0.")
+        exit()
+
+    # Get network IDs from comparision_file_IZ.xlsx
     doublecheck_df = pd.DataFrame(columns=["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"])
     comparison_df = pd.read_excel("comparison_file_IZ.xlsx", sheet_name='DIFF', dtype=str)
     comparison_df.columns = ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action']
     network_ids = comparison_df['Network Id']
-    print(network_ids)
-    for i in range(0, len(network_ids), NUMBER_OF_REQUESTS):
-        filter_xml = """
+
+    # Send NETWORK_IDS_PER_REQUEST requests to the API to fetch OCLC doublecheck data
+    number_of_requests = ceil(len(network_ids) / NETWORK_IDS_PER_REQUEST)
+    request_count = 1
+    for i in range(0, len(network_ids), NETWORK_IDS_PER_REQUEST):
+
+        print(f"Processing request {request_count} of {number_of_requests}")
+
+        # Construct the filter XML for the API request
+        xml_filter = """
         <sawx:expr xsi:type="sawx:comparison" op="greaterOrEqual"
         xmlns:saw="com.siebel.analytics.web/report/v1.1"
         xmlns:sawx="com.siebel.analytics.web/expression/v1.1"
@@ -28,10 +45,10 @@ def get_OCLC_doublecheck():
         <sawx:expr xsi:type="sawx:list" op="in">
             <sawx:expr xsi:type="sawx:sqlExpression">"Bibliographic Details"."Network Id"</sawx:expr>
         """
-        for network_id in network_ids[i:i + NUMBER_OF_REQUESTS]:
-            filter_xml += f'<sawx:expr xsi:type="xsd:string">{str(network_id)}</sawx:expr>'
+        for network_id in network_ids[i:i + NETWORK_IDS_PER_REQUEST]:
+            xml_filter += f'<sawx:expr xsi:type="xsd:string">{str(network_id)}</sawx:expr>'
 
-        filter_xml += """
+        xml_filter += """
         </sawx:expr>
         <sawx:expr xsi:type="sawx:comparison" op="equal">
             <sawx:expr xsi:type="sawx:sqlExpression">"Bibliographic Details"."Bibliographic
@@ -42,25 +59,32 @@ def get_OCLC_doublecheck():
         </sawx:expr>
         """
 
-        filter_str = " ".join(filter_xml.split())
+        # URL encode the filter
+        filter_str = " ".join(xml_filter.split())
         encoded_filter = quote(filter_str)
-        print(f"Encoded filter: {encoded_filter}")
 
+        # Make the API request
         result = requests.get(f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}")
         if result.status_code != 200:
             print(f"Error fetching XML: {result.status_code} - {result.reason}")
             exit()
         content = result.content.decode('utf-8')
 
+        # Parse the XML content into a DataFrame and merge it with the existing DataFrame
         contenet_df = pd.read_xml(io.StringIO(content), xpath='.//rs:Row', namespaces={'rs': 'urn:schemas-microsoft-com:xml-analysis:rowset'}, dtype=str)
         contenet_df.columns = ["Column0", "Bibliographic Lifecycle", "Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Institution Name"]
         contenet_df.drop(columns=["Column0"], inplace=True)
         contenet_df = contenet_df.reindex(["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"], axis=1)
         doublecheck_df = pd.concat([doublecheck_df, contenet_df], ignore_index=True)
 
+        request_count += 1
+    print("Doublecheck DataFrame: ", doublecheck_df)
     return doublecheck_df
 
 def write_doublecheck_to_excel(doublecheck_df):
+    """
+    Writes the OCLC doublecheck DataFrame to an Excel file.
+    """
     try:
         writer = pd.ExcelWriter('OCLC-doublecheck.xlsx', engine='xlsxwriter')
         doublecheck_df.to_excel(writer, index=False)
