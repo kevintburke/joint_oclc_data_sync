@@ -47,12 +47,10 @@ def get_OCLC_doublecheck():
         """
         for network_id in network_ids[i:i + NETWORK_IDS_PER_REQUEST]:
             xml_filter += f'<sawx:expr xsi:type="xsd:string">{str(network_id)}</sawx:expr>'
-
         xml_filter += """
         </sawx:expr>
         <sawx:expr xsi:type="sawx:comparison" op="equal">
-            <sawx:expr xsi:type="sawx:sqlExpression">"Bibliographic Details"."Bibliographic
-                Lifecycle"</sawx:expr>
+            <sawx:expr xsi:type="sawx:sqlExpression">"Bibliographic Details"."Bibliographic Lifecycle"</sawx:expr>
             <sawx:expr xsi:type="xsd:string">In Repository</sawx:expr>
         </sawx:expr>
 
@@ -62,7 +60,7 @@ def get_OCLC_doublecheck():
         # URL encode the filter
         filter_str = " ".join(xml_filter.split())
         encoded_filter = quote(filter_str)
-
+        print(f"Encoded filter: {encoded_filter}")
         # Make the API request
         result = requests.get(f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}")
         if result.status_code != 200:
@@ -71,13 +69,23 @@ def get_OCLC_doublecheck():
         content = result.content.decode('utf-8')
 
         # Parse the XML content into a DataFrame and merge it with the existing DataFrame
-        contenet_df = pd.read_xml(io.StringIO(content), xpath='.//rs:Row', namespaces={'rs': 'urn:schemas-microsoft-com:xml-analysis:rowset'}, dtype=str)
-        contenet_df.columns = ["Column0", "Bibliographic Lifecycle", "Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Institution Name"]
-        contenet_df.drop(columns=["Column0"], inplace=True)
-        contenet_df = contenet_df.reindex(["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"], axis=1)
-        doublecheck_df = pd.concat([doublecheck_df, contenet_df], ignore_index=True)
+        content_df = pd.read_xml(io.StringIO(content), xpath='.//rs:Row', namespaces={'rs': 'urn:schemas-microsoft-com:xml-analysis:rowset'}, dtype=str)
+
+        # Ensure all expected columns exist, even if missing in some rows
+        for col in ["Column0", "Column1", "Column2", "Column3", "Column4", "Column5"]:
+            if col not in content_df.columns:
+                content_df[col] = None  # or pd.NA
+
+        # Reorder columns to expected order
+        content_df = content_df[["Column0", "Column1", "Column2", "Column3", "Column4", "Column5"]]
+
+        content_df.columns = ["Column0", "Bibliographic Lifecycle", "Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Institution Name"]
+        content_df.drop(columns=["Column0"], inplace=True)
+        content_df = content_df.reindex(["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"], axis=1)
+        doublecheck_df = pd.concat([doublecheck_df, content_df], ignore_index=True)
 
         request_count += 1
+    print("Request processing complete.")
     print("Doublecheck DataFrame: ", doublecheck_df)
     return doublecheck_df
 
@@ -97,9 +105,7 @@ def main():
     doublecheck_df = get_OCLC_doublecheck()
     if doublecheck_df.empty:
         print("No data found in OCLC doublecheck.")
-    
-    print("Doublecheck DataFrame:")
-    print(doublecheck_df)
+
     write_doublecheck_to_excel(doublecheck_df)
     print("OCLC doublecheck data written to OCLC-doublecheck_test.xlsx")
 
