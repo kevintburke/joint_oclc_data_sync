@@ -1,0 +1,14 @@
+{
+    "libraries": [
+        {
+            "name": "Carleton Univesity",
+            "id": "5153",
+            "code": "CEF"
+        },
+        {
+            "name": "Western University",
+            "id": "5163",
+            "code": "UWO"
+        }
+    ]
+}
