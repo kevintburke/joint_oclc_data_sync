@@ -1,19 +1,39 @@
 import pandas as pd
 from tkinter import messagebox, filedialog
+import json
 
 CEFID = "5153"
 UWOID = "5163"
 NZID = "5151"
+INPUT_FOLDER = "./Inputs/"
+LIBRARIES_JSON = "libraries.json"
+LIBRARY_FILE_NAME = "testfile.txt"
 
 #Merge two Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
 def merge_reports():
     #Prompt user for .txt files and open both
-    messagebox.showinfo(title=None, message='Please select the Bib Processing Reports to load and compare.')
-    fn1 = filedialog.askopenfilename()
-    f1 = open(fn1, 'r')
-    fn2 = filedialog.askopenfilename()
-    f2 = open(fn2, 'r')
+    # messagebox.showinfo(title=None, message='Please select the Bib Processing Reports to load and compare.')
+    # fn1 = filedialog.askopenfilename()
+    # f1 = open(fn1, 'r')
+    # fn2 = filedialog.askopenfilename()
+    # f2 = open(fn2, 'r')
 
+    with open(LIBRARIES_JSON) as libraries_json:
+        libraries = json.load(libraries_json)
+
+    merged = pd.DataFrame(columns=["JobID", "Network Id", "Existing 035a", "Incoming 035a", "Action"])
+
+    for library in libraries:
+        id = library["id"]
+        code = library["code"]
+
+        with open(f"{INPUT_FOLDER}{code}{LIBRARY_FILE_NAME}") as csv:
+            df = pd.read_csv(csv, sep="|", header=None, dtype=str, names=["JobID", "Network Id", "Existing 035a", "Incoming 035a", "Action"])
+
+        merged = pd.merge(merged, df, how="outer")
+        merged.drop_duplicates(subset=["Network Id"], keep="first", inplace = True)
+        merged["Network Id"] = merged["Network Id"].astype(str)
+    return
     #Create dataframes with labelled columns (copied from UWO code)
     df1 = pd.read_csv(f1, sep="|", header=None, dtype=str)
     df1.columns = ["JobID", "Network Id", "Existing 035a", "Incoming 035a", "Action"]
