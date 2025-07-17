@@ -3,26 +3,27 @@ import pandas as pd
 import requests
 import io
 import api
+import constants
+import os
 from urllib.parse import quote
 
-
-NETWORK_IDS_PER_REQUEST = 11
+NETWORK_IDS_PER_REQUEST = 5
 API_KEY = api.get_api_key()
 
-def get_OCLC_doublecheck():
+def get_OCLC_doublecheck() -> pd.DataFrame:
     """
     Fetches OCLC doublecheck data from Alma Analytics and returns it as a DataFrame.
     """
     if not API_KEY:
         print("API key is not set. Please set the NZ_API_KEY environment variable.")
-        exit()
+        return
     if NETWORK_IDS_PER_REQUEST <= 0:
         print("NETWORK_IDS_PER_REQUEST must be greater than 0.")
-        exit()
+        return
 
     # Get network IDs from comparision_file_IZ.xlsx
     doublecheck_df = pd.DataFrame(columns=["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"])
-    comparison_df = pd.read_excel("comparison_file_IZ.xlsx", sheet_name='DIFF', dtype=str)
+    comparison_df = pd.read_excel(constants.COMPARISON_FILE, sheet_name='DIFF', dtype=str)
     comparison_df.columns = ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action']
     network_ids = comparison_df['Network Id']
 
@@ -93,8 +94,13 @@ def write_doublecheck_to_excel(doublecheck_df):
     """
     Writes the OCLC doublecheck DataFrame to an Excel file.
     """
+
+    if (not doublecheck_df):
+        return
+
     try:
-        writer = pd.ExcelWriter('OCLC-doublecheck.xlsx', engine='xlsxwriter')
+        doublecheck_file = os.path.join(constants.OUTPUT_FOLDER, constants.DOUBLECHECK_FILE)
+        writer = pd.ExcelWriter(doublecheck_file, engine='xlsxwriter')
         doublecheck_df.to_excel(writer, index=False)
         writer.close()
     except Exception as e:

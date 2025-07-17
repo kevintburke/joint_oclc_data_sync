@@ -1,29 +1,24 @@
 import pandas as pd
 from tkinter import messagebox, filedialog
+import constants
 import json
 import os
 
-CEFID = "5153"
-UWOID = "5163"
 NZID = "5151"
-INPUT_FOLDER = "./Inputs/"
-OUTPUT_FOLDER = "./Outputs/"
-INSTITUTIONS_JSON = "institutions.json"
-INPUT_CSV_FILE_NAME = "testfile.txt"
-OUTPUT_CSV_FILE_NAME = "bibprocess.csv"
 
-#Merge two Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
+
+#Merge Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
 def merge_reports():
     #Prompt user for .txt files and open both
 
-    with open(INSTITUTIONS_JSON) as institutions_json:
+    with open(constants.INSTITUTIONS_JSON_FILE) as institutions_json:
         institutions = json.load(institutions_json)
 
     columns=["JobID", "Network Id", "Existing 035a", "Incoming 035a", "Action"]
     merged = pd.DataFrame(columns=columns)
 
-    for file in os.listdir(INPUT_FOLDER):
-        with open(os.path.join(INPUT_FOLDER, file)) as csv:
+    for file in os.listdir(constants.INPUT_FOLDER):
+        with open(os.path.join(constants.INPUT_FOLDER, file)) as csv:
             df = pd.read_csv(csv, sep="|", header=None, dtype=str, names=columns)
 
         merged = pd.merge(merged, df, how="outer")
@@ -35,12 +30,14 @@ def merge_reports():
         code = library["code"]
 
         bibprocess = merged[merged['Network Id'].str.endswith(id)]
-        bibprocess.to_csv(f"{OUTPUT_FOLDER}test{code}{OUTPUT_CSV_FILE_NAME}", mode = "w", index = False)
-        print(f"{code} records saved to {code}bibprocess.csv")
+        bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_CSV_FILE_NAME}")
+        bibprocess.to_csv(bibprocess_file, mode = "w", index = False)
+        print(f"{code} records saved to {code}{constants.BIBPROCESS_CSV_FILE_NAME}")
 
     nz = merged[merged['Network Id'].str.endswith(NZID)]
-    nz.to_csv(f"{OUTPUT_FOLDER}testbibprocessmerged.csv", mode = "w", index = False)
-    print("NZ records saved to testbibprocessmerged.csv")
+    nz_file = os.path.join(constants.OUTPUT_FOLDER, constants.BIBPROCESS_CSV_FILE_NAME)
+    nz.to_csv(nz_file, mode = "w", index = False)
+    print(f"NZ records saved to {constants.BIBPROCESS_CSV_FILE_NAME}")
 
 
 def merge_reports_old():
@@ -84,7 +81,7 @@ def merge_reports_old():
 
 def compare_OCLC(): #Copied from UWO code
     #Read the BIB processing report. Add the filepath to the txt file
-    data = pd.read_csv(f'{OUTPUT_FOLDER}bibprocessmerged.csv')
+    data = pd.read_csv(f'{constants.OUTPUT_FOLDER}bibprocessmerged.csv')
 
     #make a dataframe from the BIB processing report and set the format as text for columns b and c
     df = pd.DataFrame(data, columns= ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action'])
@@ -98,7 +95,7 @@ def compare_OCLC(): #Copied from UWO code
     print(SAME)
 
     #Create the comparison_fileIZ file. Add the file path to the Excel file
-    writer = pd.ExcelWriter(f'{OUTPUT_FOLDER}comparison_file_IZ.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter(constants.COMPARISON_FILE, engine='xlsxwriter')
     DIFF.to_excel(writer, index=False, sheet_name='DIFF')
     SAME.to_excel(writer, index=False, sheet_name='SAME')
     workbook = writer.book

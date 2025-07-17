@@ -1,27 +1,36 @@
 import pandas as pd
 from pandas import DataFrame, merge, ExcelWriter
 import datetime
-
-INPUT_FOLDER = "./Inputs/"
-OUTPUT_FOLDER = "./Outputs/"
+import constants
+import os
 
 def create_reports():
+    #Find doublecheck file
+    doublecheck = None
+    for root, dirs, files in os.walk("."):
+        if constants.DOUBLECHECK_FILE in files:
+            doublecheck = os.path.join(root, constants.DOUBLECHECK_FILE)
+
+    if not AlmaExport:
+        print("Could not find doublecheck file")
+        return
+
     #Read Excel file created with Alma Analytics 'OCLC-doublecheck'
-    AlmaExport = pd.read_excel(f'{OUTPUT_FOLDER}OCLC-doublecheck.xlsx', dtype=str)
+    AlmaExport = pd.read_excel(doublecheck, dtype=str)
     AlmaExport.columns =["Network Id","OCLC Control Number (035a)","OCLC Control Number (035z)","Bibliographic Lifecycle", "Institution Name"]
 
     #Create a dataframe for 'OCLC-doublecheck'
     df1 = pd.DataFrame(AlmaExport, columns= ['Network Id','OCLC Control Number (035a)','OCLC Control Number (035z)','Institution Name'])
 
     #comparison_file
-    comparison_file = f'{OUTPUT_FOLDER}comparison_file_IZ.xlsx'
+    comparison_file = constants.COMPARISON_FILE
 
     #Read the DIFF tab of the comparison_IZ file created with NZ_Script_1
     Import = pd.read_excel(comparison_file, sheet_name='DIFF', dtype=str)
     Import.columns = ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action']
 
     # Dataframe for do not change list
-    values = pd.read_excel(f'{INPUT_FOLDER}Do_not_change.xlsx', sheet_name='Do_not_change', dtype=str)
+    values = pd.read_excel(constants.DO_NOT_CHANGE, sheet_name='Do_not_change', dtype=str)
     values.columns = ["Network Id"]
     values_df = pd.DataFrame(values, columns=['Network Id'])
     values_df['Network Id'] = values_df['Network Id'].astype(str)
@@ -64,7 +73,7 @@ def create_reports():
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
     #Create the analysis file
-    filename = f'{OUTPUT_FOLDER}NZ-OCLC-Identifier-report_{current_date}.xlsx'
+    filename = os.path.join(constants.OUTPUT_FOLDER, f"{constants.OCLC_IDENTIFIER_REPORT_FILE}{current_date}.xlsx")
     writer = pd.ExcelWriter(filename, engine='xlsxwriter')
     do_not_change.to_excel(writer, sheet_name='do_not_change')
     diff.to_excel(writer, sheet_name='update by job')
@@ -78,16 +87,16 @@ def create_reports():
     df = pd.read_excel(filename, sheet_name='update by job', dtype=str)
 
     # Create a text file for column '001' with header 'MMS ID'
-    df['Network Id'].to_csv(f'{OUTPUT_FOLDER}a_to_z_MMSid_for_set.txt', header=['MMS Id'], index=False)
+    df['Network Id'].to_csv(constants.MMSID_FOR_SET_FILE, header=['MMS Id'], index=False)
 
     # Create a text file with OCLC numbers for deduplication 
-    df['Network Id'].to_csv(f'{OUTPUT_FOLDER}oclc_numbers_updated.txt', header=['Incoming 035a'], index=False)
+    df['Network Id'].to_csv(constants.UPDATED_NUMBERS_FILE, header=['Incoming 035a'], index=False)
 
     # Create a new DataFrame for 'for_import_to_NZ' with columns '001' and '035 $a'
     for_import_to_NZ = df[['Network Id', 'Incoming 035a']]
     for_import_to_NZ.columns = ['001','035 $a']
 
-    with pd.ExcelWriter(f'{OUTPUT_FOLDER}for_import_to_NZ.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(constants.IMPORT_TO_NZ_FILE, engine='xlsxwriter') as writer:
         for_import_to_NZ.to_excel(writer, index=False, sheet_name='for_import_to_NZ')
 
     # Get the xlsxwriter workbook and worksheet objects
