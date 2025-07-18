@@ -11,7 +11,7 @@ def create_reports():
         if constants.DOUBLECHECK_FILE in files:
             doublecheck = os.path.join(root, constants.DOUBLECHECK_FILE)
 
-    if not AlmaExport:
+    if not doublecheck:
         print("Could not find doublecheck file")
         return
 
@@ -30,7 +30,7 @@ def create_reports():
     Import.columns = ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action']
 
     # Dataframe for do not change list
-    values = pd.read_excel(constants.DO_NOT_CHANGE, sheet_name='Do_not_change', dtype=str)
+    values = pd.read_excel(constants.DO_NOT_CHANGE_FILE, sheet_name='Do_not_change', dtype=str)
     values.columns = ["Network Id"]
     values_df = pd.DataFrame(values, columns=['Network Id'])
     values_df['Network Id'] = values_df['Network Id'].astype(str)

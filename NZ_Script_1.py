@@ -5,7 +5,8 @@ import json
 import os
 
 NZID = "5151"
-
+CEFID = "5153"
+UWOID = "5163"
 
 #Merge Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
 def merge_reports():
@@ -30,14 +31,13 @@ def merge_reports():
         code = library["code"]
 
         bibprocess = merged[merged['Network Id'].str.endswith(id)]
-        bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_CSV_FILE_NAME}")
+        bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_IZ_FILE_NAME}")
         bibprocess.to_csv(bibprocess_file, mode = "w", index = False)
-        print(f"{code} records saved to {code}{constants.BIBPROCESS_CSV_FILE_NAME}")
+        print(f"{code} records saved to {code}{constants.BIBPROCESS_IZ_FILE_NAME}")
 
     nz = merged[merged['Network Id'].str.endswith(NZID)]
-    nz_file = os.path.join(constants.OUTPUT_FOLDER, constants.BIBPROCESS_CSV_FILE_NAME)
-    nz.to_csv(nz_file, mode = "w", index = False)
-    print(f"NZ records saved to {constants.BIBPROCESS_CSV_FILE_NAME}")
+    nz.to_csv(constants.BIBPROCESS_MERGED_FILE, mode = "w", index = False)
+    print(f"NZ records saved to {constants.BIBPROCESS_MERGED_FILE}")
 
 
 def merge_reports_old():
@@ -81,7 +81,7 @@ def merge_reports_old():
 
 def compare_OCLC(): #Copied from UWO code
     #Read the BIB processing report. Add the filepath to the txt file
-    data = pd.read_csv(f'{constants.OUTPUT_FOLDER}bibprocessmerged.csv')
+    data = pd.read_csv(constants.BIBPROCESS_MERGED_FILE)
 
     #make a dataframe from the BIB processing report and set the format as text for columns b and c
     df = pd.DataFrame(data, columns= ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action'])

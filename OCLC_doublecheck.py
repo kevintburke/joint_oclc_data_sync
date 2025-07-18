@@ -10,7 +10,7 @@ from urllib.parse import quote
 NETWORK_IDS_PER_REQUEST = 5
 API_KEY = api.get_api_key()
 
-def get_OCLC_doublecheck() -> pd.DataFrame:
+def get_OCLC_doublecheck():
     """
     Fetches OCLC doublecheck data from Alma Analytics and returns it as a DataFrame.
     """
@@ -61,15 +61,18 @@ def get_OCLC_doublecheck() -> pd.DataFrame:
         # URL encode the filter
         filter_str = " ".join(xml_filter.split())
         encoded_filter = quote(filter_str)
-        print(f"Encoded filter: {encoded_filter}")
+        url = f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}"
+        print(f"URL: {url}")
         # Make the API request
-        result = requests.get(f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}")
+        result = requests.get(url)
         if result.status_code != 200:
-            print(f"Error fetching XML: {result.status_code} - {result.reason}")
+            print(f"Error fetching XML: {result.status_code} - {result.text}")
             exit()
         content = result.content.decode('utf-8')
+        print("Successfully obtained data from API.")
 
         # Parse the XML content into a DataFrame and merge it with the existing DataFrame
+        print("Adding data to DataFrame...")
         content_df = pd.read_xml(io.StringIO(content), xpath='.//rs:Row', namespaces={'rs': 'urn:schemas-microsoft-com:xml-analysis:rowset'}, dtype=str)
 
         # Ensure all expected columns exist, even if missing in some rows
@@ -86,6 +89,8 @@ def get_OCLC_doublecheck() -> pd.DataFrame:
         doublecheck_df = pd.concat([doublecheck_df, content_df], ignore_index=True)
 
         request_count += 1
+
+        print("Successfully added new data to DataFrame.")
     print("Request processing complete.")
     print("Doublecheck DataFrame: ", doublecheck_df)
     return doublecheck_df
@@ -95,7 +100,7 @@ def write_doublecheck_to_excel(doublecheck_df):
     Writes the OCLC doublecheck DataFrame to an Excel file.
     """
 
-    if (not doublecheck_df):
+    if (doublecheck_df.empty):
         return
 
     try:
