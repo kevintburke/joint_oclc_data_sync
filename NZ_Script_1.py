@@ -26,6 +26,8 @@ def merge_reports():
         merged.drop_duplicates(subset=["Network Id"], keep="first", inplace = True)
         merged["Network Id"] = merged["Network Id"].astype(str)
 
+    if merged.empty:
+        raise Exception("Merged DataFrame is empty. Make sure BibProcessing files are in Inputs directory.")
     for library in institutions:
         id = library["id"]
         code = library["code"]
@@ -105,8 +107,8 @@ def compare_OCLC(): #Copied from UWO code
     writer.close()
 
 def main():
-    merge_reports_old()
     merge_reports()
+    return
     # compare_OCLC()
 
 if __name__ == '__main__':

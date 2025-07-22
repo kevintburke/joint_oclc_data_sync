@@ -7,7 +7,7 @@ import constants
 import os
 from urllib.parse import quote
 
-NETWORK_IDS_PER_REQUEST = 5
+NETWORK_IDS_PER_REQUEST = 12
 API_KEY = api.get_api_key()
 
 def get_OCLC_doublecheck():
@@ -61,12 +61,14 @@ def get_OCLC_doublecheck():
         # URL encode the filter
         filter_str = " ".join(xml_filter.split())
         encoded_filter = quote(filter_str)
-        url = f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}"
-        print(f"URL: {url}")
+        base_url = "https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?col_names=true"
+        analytics_path = f"%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck"
+        url = f"{base_url}&path={analytics_path}&filter={encoded_filter}&apikey={API_KEY}"
+
         # Make the API request
         result = requests.get(url)
         if result.status_code != 200:
-            print(f"Error fetching XML: {result.status_code} - {result.text}")
+            print(f"Error fetching XML: {result.status_code} - {result.text}\nURL with error: {base_url}&path={analytics_path}&filter={encoded_filter}&apikey=")
             exit()
         content = result.content.decode('utf-8')
         print("Successfully obtained data from API.")
@@ -91,8 +93,9 @@ def get_OCLC_doublecheck():
         request_count += 1
 
         print("Successfully added new data to DataFrame.")
+
     print("Request processing complete.")
-    print("Doublecheck DataFrame: ", doublecheck_df)
+    print("Doublecheck DataFrame: \n", doublecheck_df)
     return doublecheck_df
 
 def write_doublecheck_to_excel(doublecheck_df):
