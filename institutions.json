@@ -1,12 +1,97 @@
 [
   {
-    "name": "Carleton Univesity",
+    "name": "Algome University",
+    "id": "5166",
+    "code": "CNALU"
+  },
+  {
+    "name": "Brock University",
+    "id": "5152",
+    "code": "BRX"
+  },
+  {
+    "name": "Carleton University",
     "id": "5153",
     "code": "CEF"
+  },
+  {
+    "name": "Lakehead University",
+    "id": "5155",
+    "code": "LHU"
+  },
+  {
+    "name": "Laurentian University",
+    "id": "5165",
+    "code": "LU$"
+  },
+  {
+    "name": "McMaster University",
+    "id": "7371",
+    "code": "MUX"
+  },
+  {
+    "name": "Nipissing University",
+    "id": "5157",
+    "code": "CANPU"
+  },
+  {
+    "name": "OCAD University",
+    "id": "7481",
+    "code": "CNCAD"
+  },
+  {
+    "name": "Ontario Tech",
+    "id": "5160",
+    "code": "CAUOI"
+  },
+  {
+    "name": "Queen's University",
+    "id": "5158",
+    "code": "Q2U"
+  },
+  {
+    "name": "Toronto Metropolitan University",
+    "id": "8636",
+    "code": "RRP"
+  },
+  {
+    "name": "Trent University",
+    "id": "5159",
+    "code": "CNTRU"
+  },
+  {
+    "name": "University of Guelph",
+    "id": "5154",
+    "code": "U3G"
+  },
+  {
+    "name": "University of Ottawa",
+    "id": "5161",
+    "code": "OTZ"
+  },
+  {
+    "name": "University of Waterloo",
+    "id": "5162",
+    "code": "UWW"
+  },
+  {
+    "name": "University of Windsor",
+    "id": "2181",
+    "code": "CWI"
   },
   {
     "name": "Western University",
     "id": "5163",
     "code": "UWO"
+  },
+  {
+    "name": "Wilfrid Laurier University",
+    "id": "5156",
+    "code": "W2U"
+  },
+  {
+    "name": "York University",
+    "id": "5164",
+    "code": "YOU"
   }
 ]
