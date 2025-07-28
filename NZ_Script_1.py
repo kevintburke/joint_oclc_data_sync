@@ -33,9 +33,12 @@ def merge_reports():
         code = library["code"]
 
         bibprocess = merged[merged['Network Id'].str.endswith(id)]
-        bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_IZ_FILE_NAME}")
-        bibprocess.to_csv(bibprocess_file, mode = "w", index = False)
-        print(f"{code} records saved to {code}{constants.BIBPROCESS_IZ_FILE_NAME}")
+        if len(bibprocess) > 1:
+            bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_IZ_FILE_NAME}")
+            bibprocess.to_csv(bibprocess_file, mode = "w", index = False)
+            print(f"{code} records saved to {code}{constants.BIBPROCESS_IZ_FILE_NAME}")
+        else:
+            continue
 
     nz = merged[merged['Network Id'].str.endswith(NZID)]
     nz.to_csv(constants.BIBPROCESS_MERGED_FILE, mode = "w", index = False)
