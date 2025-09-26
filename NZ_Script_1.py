@@ -1,13 +1,51 @@
 import pandas as pd
 from tkinter import messagebox, filedialog
+import constants
+import json
+import os
 
+NZID = "5151"
 CEFID = "5153"
 UWOID = "5163"
-NZID = "5151"
 
-#Merge two Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
+#Merge Bib Processing Reports and dedupe using NZ ID, then split into NZ and IZ reports
 def merge_reports():
     #Prompt user for .txt files and open both
+
+    with open(constants.INSTITUTIONS_JSON_FILE) as institutions_json:
+        institutions = json.load(institutions_json)
+
+    columns=["JobID", "Network Id", "Existing 035a", "Incoming 035a", "Action"]
+    merged = pd.DataFrame(columns=columns)
+
+    for file in os.listdir(constants.INPUT_FOLDER):
+        with open(os.path.join(constants.INPUT_FOLDER, file)) as csv:
+            df = pd.read_csv(csv, sep="|", header=None, dtype=str, names=columns)
+
+        merged = pd.merge(merged, df, how="outer")
+        merged.drop_duplicates(subset=["Network Id"], keep="first", inplace = True)
+        merged["Network Id"] = merged["Network Id"].astype(str)
+
+    if merged.empty:
+        raise Exception("Merged DataFrame is empty. Make sure BibProcessing files are in Inputs directory.")
+    for library in institutions:
+        id = library["id"]
+        code = library["code"]
+
+        bibprocess = merged[merged['Network Id'].str.endswith(id)]
+        if len(bibprocess) > 1:
+            bibprocess_file = os.path.join(constants.OUTPUT_FOLDER, f"{code}{constants.BIBPROCESS_IZ_FILE_NAME}")
+            bibprocess.to_csv(bibprocess_file, mode = "w", index = False)
+            print(f"{code} records saved to {code}{constants.BIBPROCESS_IZ_FILE_NAME}")
+        else:
+            continue
+
+    nz = merged[merged['Network Id'].str.endswith(NZID)]
+    nz.to_csv(constants.BIBPROCESS_MERGED_FILE, mode = "w", index = False)
+    print(f"NZ records saved to {constants.BIBPROCESS_MERGED_FILE}")
+
+
+def merge_reports_old():
     messagebox.showinfo(title=None, message='Please select the Bib Processing Reports to load and compare.')
     fn1 = filedialog.askopenfilename()
     f1 = open(fn1, 'r')
@@ -45,9 +83,10 @@ def merge_reports():
     NZ.to_csv("bibprocessmerged.csv", mode = "w", index = False)
     print("NZ records saved to bibprocessmerged.csv")
 
+
 def compare_OCLC(): #Copied from UWO code
     #Read the BIB processing report. Add the filepath to the txt file
-    data = pd.read_csv('bibprocessmerged.csv')
+    data = pd.read_csv(constants.BIBPROCESS_MERGED_FILE)
 
     #make a dataframe from the BIB processing report and set the format as text for columns b and c
     df = pd.DataFrame(data, columns= ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action'])
@@ -61,7 +100,7 @@ def compare_OCLC(): #Copied from UWO code
     print(SAME)
 
     #Create the comparison_fileIZ file. Add the file path to the Excel file
-    writer = pd.ExcelWriter('comparison_file_IZ.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter(constants.COMPARISON_FILE, engine='xlsxwriter')
     DIFF.to_excel(writer, index=False, sheet_name='DIFF')
     SAME.to_excel(writer, index=False, sheet_name='SAME')
     workbook = writer.book
@@ -72,9 +111,8 @@ def compare_OCLC(): #Copied from UWO code
 
 def main():
     merge_reports()
-    compare_OCLC()
-
-print(__name__)
+    return
+    # compare_OCLC()
 
 if __name__ == '__main__':
     main()

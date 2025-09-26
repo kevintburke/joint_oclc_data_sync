@@ -3,10 +3,11 @@ import pandas as pd
 import requests
 import io
 import api
+import constants
+import os
 from urllib.parse import quote
 
-
-NETWORK_IDS_PER_REQUEST = 11
+NETWORK_IDS_PER_REQUEST = 12
 API_KEY = api.get_api_key()
 
 def get_OCLC_doublecheck():
@@ -15,14 +16,14 @@ def get_OCLC_doublecheck():
     """
     if not API_KEY:
         print("API key is not set. Please set the NZ_API_KEY environment variable.")
-        exit()
+        return
     if NETWORK_IDS_PER_REQUEST <= 0:
         print("NETWORK_IDS_PER_REQUEST must be greater than 0.")
-        exit()
+        return
 
     # Get network IDs from comparision_file_IZ.xlsx
     doublecheck_df = pd.DataFrame(columns=["Network Id", "OCLC Control Number (035a)", "OCLC Control Number (035z)", "Bibliographic Lifecycle", "Institution Name"])
-    comparison_df = pd.read_excel("comparison_file_IZ.xlsx", sheet_name='DIFF', dtype=str)
+    comparison_df = pd.read_excel(constants.COMPARISON_FILE, sheet_name='DIFF', dtype=str)
     comparison_df.columns = ['JobID', 'Network Id', 'Existing 035a', 'Incoming 035a', 'Action']
     network_ids = comparison_df['Network Id']
 
@@ -60,15 +61,20 @@ def get_OCLC_doublecheck():
         # URL encode the filter
         filter_str = " ".join(xml_filter.split())
         encoded_filter = quote(filter_str)
-        print(f"Encoded filter: {encoded_filter}")
+        base_url = "https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?col_names=true"
+        analytics_path = f"%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck"
+        url = f"{base_url}&path={analytics_path}&filter={encoded_filter}&apikey={API_KEY}"
+
         # Make the API request
-        result = requests.get(f"https://api-ca.hosted.exlibrisgroup.com/almaws/v1/analytics/reports?path=%2Fshared%2FUTON+Network+01OCUL_NETWORK%2FReports%2FOCLC+Identifiers%2FOCLC-doublecheck&col_names=true&filter={encoded_filter}&apikey={API_KEY}")
+        result = requests.get(url)
         if result.status_code != 200:
-            print(f"Error fetching XML: {result.status_code} - {result.reason}")
+            print(f"Error fetching XML: {result.status_code} - {result.text}\nURL with error: {base_url}&path={analytics_path}&filter={encoded_filter}&apikey=")
             exit()
         content = result.content.decode('utf-8')
+        print("Successfully obtained data from API.")
 
         # Parse the XML content into a DataFrame and merge it with the existing DataFrame
+        print("Adding data to DataFrame...")
         content_df = pd.read_xml(io.StringIO(content), xpath='.//rs:Row', namespaces={'rs': 'urn:schemas-microsoft-com:xml-analysis:rowset'}, dtype=str)
 
         # Ensure all expected columns exist, even if missing in some rows
@@ -85,16 +91,24 @@ def get_OCLC_doublecheck():
         doublecheck_df = pd.concat([doublecheck_df, content_df], ignore_index=True)
 
         request_count += 1
+
+        print("Successfully added new data to DataFrame.")
+
     print("Request processing complete.")
-    print("Doublecheck DataFrame: ", doublecheck_df)
+    print("Doublecheck DataFrame: \n", doublecheck_df)
     return doublecheck_df
 
 def write_doublecheck_to_excel(doublecheck_df):
     """
     Writes the OCLC doublecheck DataFrame to an Excel file.
     """
+
+    if (doublecheck_df.empty):
+        return
+
     try:
-        writer = pd.ExcelWriter('OCLC-doublecheck.xlsx', engine='xlsxwriter')
+        doublecheck_file = os.path.join(constants.OUTPUT_FOLDER, constants.DOUBLECHECK_FILE)
+        writer = pd.ExcelWriter(doublecheck_file, engine='xlsxwriter')
         doublecheck_df.to_excel(writer, index=False)
         writer.close()
     except Exception as e:
