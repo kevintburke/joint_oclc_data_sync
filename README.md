@@ -40,3 +40,9 @@ _Batch Updating Records in NZ_
   - Uses output for_import_to_NZ.xlsx
 
 _These scripts were copied and adapted from ones developed by Erin Bourgard and available at https://github.com/ernieejo/OCLC-imports-for-Alma-Network_
+
+_Updates - September 26, 2025_
+- Merged "scalability" branch to carry over Michael's changes:<br />
+&nbsp;&nbsp;- Combines scripts into one main<br />
+&nbsp;&nbsp;- Uses API calls to NZ Analytics to retrieve OCLC doublecheck report<br />
+&nbsp;&nbsp;- Outputs reports for each CF institution based on the last four digits of the MMS ID
